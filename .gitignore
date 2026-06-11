@@ -9,6 +9,7 @@ venv/
 
 # Generated data and model artifacts
 data/simulated/
+outputs/
 runs/
 models/checkpoints/*.pt
 models/checkpoints/*.pth
@@ -17,4 +18,3 @@ models/checkpoints/*.pth
 # Local environment
 .env
 .env.*
-

@@ -36,15 +36,19 @@ def _analyze_array(image: object) -> DiagnosisResponse:
     model_prediction = model_inference.predict(arr)
     image_type = "unknown_or_estimated"
     confidence = 0.0
+    fallback = "rule_based"
     if model_prediction:
         image_type = str(model_prediction["image_type"])
         confidence = float(model_prediction["confidence"])
+        fallback = "model"
 
     metrics = compute_diffraction_metrics(arr)
     response = diagnose_from_metrics(metrics, image_type=image_type, confidence=confidence)
     if model_prediction and model_prediction.get("issues"):
         # Stage-2 hook: trained model issues can replace rule issues while the report stays Chinese.
         response["issues"] = model_prediction["issues"]
+    response["model_available"] = bool(model_inference.available)
+    response["fallback"] = fallback
     return DiagnosisResponse(**response)
 
 
@@ -76,4 +80,3 @@ async def analyze_batch(
         except Exception as exc:  # noqa: BLE001
             errors.append({"file": file.filename, "error": str(exc)})
     return BatchDiagnosisResponse(results=results, errors=errors)
-

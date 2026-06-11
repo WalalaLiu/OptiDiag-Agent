@@ -26,6 +26,8 @@ class DiagnosisResponse(BaseModel):
     possible_causes: List[str]
     suggestions: List[str]
     need_reacquire: bool
+    model_available: bool = False
+    fallback: str = "rule_based"
 
 
 class HealthResponse(BaseModel):
@@ -42,4 +44,3 @@ class BatchDiagnosisResponse(BaseModel):
 
     results: List[DiagnosisResponse]
     errors: List[Dict[str, Optional[str]]] = []
-

@@ -251,6 +251,16 @@
           "need_reacquire": {
             "type": "boolean",
             "title": "Need Reacquire"
+          },
+          "model_available": {
+            "type": "boolean",
+            "title": "Model Available",
+            "default": false
+          },
+          "fallback": {
+            "type": "string",
+            "title": "Fallback",
+            "default": "rule_based"
           }
         },
         "type": "object",

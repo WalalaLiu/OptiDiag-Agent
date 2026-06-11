@@ -123,7 +123,9 @@ curl -X POST "http://127.0.0.1:8000/analyze" \
   "diagnosis": "图像疑似存在中等程度过曝。",
   "possible_causes": ["相机曝光时间或光源功率偏高"],
   "suggestions": ["适当降低曝光时间或光源强度，避免中央主极大饱和"],
-  "need_reacquire": true
+  "need_reacquire": true,
+  "model_available": false,
+  "fallback": "rule_based"
 }
 ```
 
@@ -155,10 +157,11 @@ If `models/checkpoints/best_model.pt` is absent, the API automatically uses rule
 
 ## Report Screenshot Suggestions
 
+- `outputs/demo_cases/summary.csv`
+- `outputs/demo_cases/visualizations/*_report.png`
 - Generated dataset folder with `images/`, `metadata/`, and `labels.csv`
 - One JSON metadata example showing issue labels and metrics
 - `/health` response
 - `/analyze` response for over-exposure, blur, and misalignment examples
 - OpenAPI schema page or exported `docs/openapi.json`
 - Rule-based diagnosis explanation and Chinese suggestions
-

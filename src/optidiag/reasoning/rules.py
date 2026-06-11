@@ -42,6 +42,7 @@ def diagnose_from_metrics(
     dark = float(metrics["dark_pixel_ratio"])
     lap_var = float(metrics["laplacian_variance"])
     uniformity = float(metrics["background_uniformity"])
+    background_gradient = float(metrics.get("background_gradient_estimate", 0.0))
     fringe = float(metrics["fringe_visibility"])
     edge_energy = float(metrics.get("edge_energy_ratio", 0.0))
     asymmetry = float(metrics.get("asymmetry_score", 0.0))
@@ -49,17 +50,23 @@ def diagnose_from_metrics(
     offset_x, offset_y = metrics["center_offset_px"]
     offset_mag = float(np.hypot(float(offset_x), float(offset_y)))
 
-    _add_issue(issues, "over_exposure", max(saturation / 0.01, (max_intensity - 0.985) / 0.015))
-    _add_issue(issues, "under_exposure", max(0.0, (0.36 - max_intensity) / 0.36) * max(0.0, (0.12 - mean) / 0.12))
+    _add_issue(issues, "over_exposure", saturation / 0.006)
+    _add_issue(issues, "under_exposure", max(0.0, (0.50 - max_intensity) / 0.42) * max(0.0, (0.13 - mean) / 0.13))
     _add_issue(issues, "blur_defocus", (0.0018 - lap_var) / 0.0018)
-    _add_issue(issues, "misalignment", offset_mag / 32.0)
-    _add_issue(issues, "background_gradient", (0.68 - uniformity) / 0.38)
-    fringe_score = (0.28 - fringe) / 0.28 if contrast < 0.55 else 0.0
+    background_score = (0.90 - uniformity) / 0.30
+    background_score = max(background_score, background_gradient / 0.28)
+    _add_issue(issues, "background_gradient", background_score)
+    _add_issue(issues, "misalignment", (offset_mag / 32.0) * max(0.25, 1.0 - min(1.0, background_score) * 0.55))
+    fringe_score = (
+        (0.28 - fringe) / 0.28
+        if contrast < 0.55 and max_intensity > 0.45 and edge_energy < 0.25
+        else 0.0
+    )
     _add_issue(issues, "low_contrast", max((0.42 - contrast) / 0.42, fringe_score))
-    _add_issue(issues, "cropping_incomplete", (edge_energy - 0.22) / 0.28)
+    _add_issue(issues, "cropping_incomplete", (edge_energy - 0.18) / 0.25)
     _add_issue(issues, "rotation_tilt", max(0.0, min(orientation, 90.0 - orientation) - 8.0) / 24.0)
 
-    high_frequency_noise = max(0.0, std - 0.18) * max(0.0, lap_var - 0.003) * 80.0
+    high_frequency_noise = max(0.0, std - 0.12) * max(0.0, lap_var - 0.01) * 45.0
     _add_issue(issues, "gaussian_noise", high_frequency_noise)
     _add_issue(issues, "poisson_noise", max(0.0, 0.34 - mean) * max(0.0, std - 0.11) * 4.0)
     _add_issue(issues, "dark_noise", max(0.0, dark - 0.75) * max(0.0, std - 0.09) * max(0.0, 0.98 - max_intensity) * 2.0)
@@ -83,6 +90,8 @@ def diagnose_from_metrics(
         "possible_causes": possible_causes,
         "suggestions": suggestions,
         "need_reacquire": bool(need_reacquire),
+        "model_available": False,
+        "fallback": "rule_based",
     }
 
 

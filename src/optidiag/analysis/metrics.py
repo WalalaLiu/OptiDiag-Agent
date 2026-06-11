@@ -38,19 +38,30 @@ def laplacian_variance(image: np.ndarray) -> float:
 def background_uniformity(image: np.ndarray) -> float:
     """Return 1 for uniform corner background and near 0 for gradients."""
     arr = to_float_gray(image)
-    h, w = arr.shape
-    pad = max(4, min(h, w) // 8)
-    corners = np.concatenate(
-        [
-            arr[:pad, :pad].ravel(),
-            arr[:pad, -pad:].ravel(),
-            arr[-pad:, :pad].ravel(),
-            arr[-pad:, -pad:].ravel(),
-        ]
-    )
-    corner_mean = float(np.mean(corners))
-    corner_std = float(np.std(corners))
+    corners = _corner_blocks(arr)
+    corner_values = np.concatenate([corner.ravel() for corner in corners])
+    corner_mean = float(np.mean(corner_values))
+    corner_std = float(np.std(corner_values))
     return float(np.clip(1.0 - corner_std / (corner_mean + 0.08), 0.0, 1.0))
+
+
+def _corner_blocks(image: np.ndarray) -> list[np.ndarray]:
+    """Return corner blocks used as a background proxy."""
+    h, w = image.shape
+    pad = max(4, min(h, w) // 8)
+    return [
+        image[:pad, :pad],
+        image[:pad, -pad:],
+        image[-pad:, :pad],
+        image[-pad:, -pad:],
+    ]
+
+
+def background_gradient_estimate(image: np.ndarray) -> float:
+    """Estimate smooth background gradient strength from corner means."""
+    arr = to_float_gray(image)
+    corner_means = [float(np.mean(corner)) for corner in _corner_blocks(arr)]
+    return float(np.clip(max(corner_means) - min(corner_means), 0.0, 1.0))
 
 
 def fft_peak_strength(image: np.ndarray) -> float:
@@ -100,8 +111,8 @@ def compute_basic_metrics(image: np.ndarray) -> Dict[str, object]:
     arr = to_float_gray(image)
     mean = float(np.mean(arr))
     std = float(np.std(arr))
-    p1, p995 = np.percentile(arr, [1, 99.5])
-    contrast = float((p995 - p1) / (p995 + p1 + 1e-6))
+    p1, p999 = np.percentile(arr, [1, 99.9])
+    contrast = float((p999 - p1) / (p999 + p1 + 1e-6))
     saturation = float(np.mean(arr >= 0.98))
     dark_ratio = float(np.mean(arr <= 0.03))
     com_x, com_y = center_of_mass(arr)
@@ -121,6 +132,7 @@ def compute_basic_metrics(image: np.ndarray) -> Dict[str, object]:
         "center_of_mass": [com_x, com_y],
         "center_offset_px": [offset_x, offset_y],
         "background_uniformity": background_uniformity(arr),
+        "background_gradient_estimate": background_gradient_estimate(arr),
         "fft_peak_strength": fft_peak_strength(arr),
         "main_lobe_width_estimate": main_lobe_width_estimate(arr),
         "edge_energy_ratio": edge_energy_ratio(arr),

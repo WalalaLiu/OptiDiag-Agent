@@ -60,8 +60,8 @@ def estimate_snr(image: np.ndarray) -> float:
 
 def percentile_contrast(image: np.ndarray) -> float:
     """Compute robust contrast from the 5th and 95th percentiles."""
-    p1, p995 = np.percentile(image, [1, 99.5])
-    return float((p995 - p1) / (p995 + p1 + 1e-6))
+    p1, p999 = np.percentile(image, [1, 99.9])
+    return float((p999 - p1) / (p999 + p1 + 1e-6))
 
 
 def exposure_stats(image: np.ndarray) -> Tuple[float, float]:

@@ -35,3 +35,5 @@ def test_analyze_file_upload():
     assert "metrics" in data
     assert "diagnosis" in data
     assert "suggestions" in data
+    assert data["model_available"] is False
+    assert data["fallback"] == "rule_based"

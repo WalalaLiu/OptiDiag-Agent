@@ -61,7 +61,8 @@ curl -X POST "http://127.0.0.1:8000/analyze" \
     "适当降低曝光时间或光源强度，避免中央主极大饱和",
     "微调孔径、透镜和相机中心，使主极大回到图像中心"
   ],
-  "need_reacquire": true
+  "need_reacquire": true,
+  "model_available": false,
+  "fallback": "rule_based"
 }
 ```
-
