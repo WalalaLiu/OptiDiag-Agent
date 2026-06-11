@@ -4,6 +4,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from optidiag.api import main as api_main
 from optidiag.api.main import app
 
 
@@ -35,5 +36,24 @@ def test_analyze_file_upload():
     assert "metrics" in data
     assert "diagnosis" in data
     assert "suggestions" in data
+    assert "model_available" in data
+    assert "fallback" in data
+    assert isinstance(data["model_available"], bool)
+    assert isinstance(data["fallback"], str)
+
+
+def test_analyze_rule_based_fallback(monkeypatch):
+    monkeypatch.setattr(api_main.model_inference, "available", False)
+    monkeypatch.setattr(api_main.model_inference, "predict", lambda image: None)
+
+    client = TestClient(app)
+    response = client.post(
+        "/analyze",
+        files={"file": ("test.png", _png_bytes(), "image/png")},
+        data={"experiment_type": "diffraction"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
     assert data["model_available"] is False
     assert data["fallback"] == "rule_based"
