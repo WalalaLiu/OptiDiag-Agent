@@ -8,6 +8,7 @@ from typing import Dict, Optional, Union
 import numpy as np
 
 from optidiag.constants import IMAGE_TYPES, ISSUE_TYPES
+from optidiag.models.checkpoint import load_torch_checkpoint
 from optidiag.models.network import MultiTaskCNN, torch_available
 from optidiag.utils.image_io import to_float_gray
 
@@ -28,7 +29,7 @@ class ModelInference:
             return
         try:
             self.model = MultiTaskCNN()
-            checkpoint = torch.load(self.checkpoint_path, map_location="cpu")
+            checkpoint = load_torch_checkpoint(self.checkpoint_path, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)
             self.model.load_state_dict(state_dict, strict=False)
             self.model.eval()

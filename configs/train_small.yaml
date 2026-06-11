@@ -11,8 +11,10 @@ training:
   learning_rate: 0.001
   val_split: 0.2
   checkpoint: models/checkpoints/best_model.pt
+  image_loss_weight: 1.0
+  issue_loss_weight: 3.0
+  quality_loss_weight: 0.5
 
 evaluation:
-  threshold: 0.5
+  thresholds: [0.1, 0.2, 0.3, 0.4, 0.5]
   metrics_output: runs/eval_small_metrics.json
-

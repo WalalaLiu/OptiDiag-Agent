@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -23,6 +23,9 @@ except ImportError:  # pragma: no cover
 class DiffractionMultiTaskDataset(Dataset):
     """Load synthetic diffraction images and multi-task labels from labels.csv."""
 
+    image_type_names = IMAGE_TYPES
+    issue_names = ISSUE_TYPES
+
     def __init__(self, dataset_dir: Union[str, Path], labels_file: str = "labels.csv") -> None:
         if torch is None:
             raise ImportError("Install torch to use DiffractionMultiTaskDataset.")
@@ -34,14 +37,52 @@ class DiffractionMultiTaskDataset(Dataset):
             self.rows: List[Dict[str, str]] = list(csv.DictReader(file))
         if not self.rows:
             raise ValueError(f"No rows found in labels file: {labels_path}")
+        self._validate_rows()
 
     def __len__(self) -> int:
         return len(self.rows)
 
+    def _validate_rows(self) -> None:
+        """Validate required labels and keep failures early and explicit."""
+        required = {"image_path", "image_type", "primary_issue", "issue_scores", "quality_score"}
+        missing = required - set(self.rows[0].keys())
+        if missing:
+            raise ValueError(f"Missing labels.csv columns: {sorted(missing)}")
+        unknown_images = sorted({row["image_type"] for row in self.rows if row["image_type"] not in IMAGE_TYPES})
+        unknown_issues = sorted({row["primary_issue"] for row in self.rows if row["primary_issue"] not in ISSUE_TYPES})
+        if unknown_images:
+            raise ValueError(f"Unknown image_type labels: {unknown_images}")
+        if unknown_issues:
+            raise ValueError(f"Unknown primary_issue labels: {unknown_issues}")
+
+    def _issue_scores(self, row: Dict[str, str]) -> Dict[str, float]:
+        """Parse issue_scores into the fixed ISSUE_TYPES order."""
+        scores = json.loads(row["issue_scores"])
+        return {issue: float(scores.get(issue, 0.0)) for issue in ISSUE_TYPES}
+
+    def issue_matrix(self, indices: Optional[Iterable[int]] = None) -> np.ndarray:
+        """Return a multi-hot issue matrix in fixed ISSUE_TYPES order."""
+        selected_indices = list(indices) if indices is not None else list(range(len(self.rows)))
+        matrix = []
+        for idx in selected_indices:
+            scores = self._issue_scores(self.rows[int(idx)])
+            matrix.append([float(scores.get(issue, 0.0) > 0.2) for issue in ISSUE_TYPES])
+        return np.asarray(matrix, dtype=np.float32)
+
+    def primary_issue_indices(self, indices: Optional[Iterable[int]] = None) -> np.ndarray:
+        """Return primary issue indices in fixed ISSUE_TYPES order."""
+        selected_indices = list(indices) if indices is not None else list(range(len(self.rows)))
+        return np.asarray([ISSUE_TYPES.index(self.rows[int(idx)]["primary_issue"]) for idx in selected_indices], dtype=np.int64)
+
+    def image_type_indices(self, indices: Optional[Iterable[int]] = None) -> np.ndarray:
+        """Return image type indices in fixed IMAGE_TYPES order."""
+        selected_indices = list(indices) if indices is not None else list(range(len(self.rows)))
+        return np.asarray([IMAGE_TYPES.index(self.rows[int(idx)]["image_type"]) for idx in selected_indices], dtype=np.int64)
+
     def __getitem__(self, idx: int) -> Dict[str, object]:
         row = self.rows[idx]
         image = load_gray_image(self.dataset_dir / row["image_path"])
-        issue_scores = json.loads(row["issue_scores"])
+        issue_scores = self._issue_scores(row)
         issue_vector = np.array([float(issue_scores.get(issue, 0.0) > 0.2) for issue in ISSUE_TYPES], dtype=np.float32)
         issue_score_vector = np.array([float(issue_scores.get(issue, 0.0)) for issue in ISSUE_TYPES], dtype=np.float32)
         image_type_idx = IMAGE_TYPES.index(row["image_type"])
