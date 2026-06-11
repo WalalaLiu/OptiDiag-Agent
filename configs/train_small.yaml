@@ -1,0 +1,18 @@
+data:
+  data_dir: data/simulated/train_smoke
+  num_images: 600
+  image_size: 128
+  seed: 2026
+
+training:
+  epochs: 2
+  batch_size: 16
+  device: cpu
+  learning_rate: 0.001
+  val_split: 0.2
+  checkpoint: models/checkpoints/best_model.pt
+
+evaluation:
+  threshold: 0.5
+  metrics_output: runs/eval_small_metrics.json
+
