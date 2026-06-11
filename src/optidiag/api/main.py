@@ -40,7 +40,9 @@ def _analyze_array(image: object) -> DiagnosisResponse:
     if model_prediction:
         image_type = str(model_prediction["image_type"])
         confidence = float(model_prediction["confidence"])
-        fallback = "model"
+        fallback = "model_with_rule_based"
+    elif model_inference.available and getattr(model_inference, "last_prediction_failed", False):
+        fallback = "rule_based_after_model_failure"
 
     metrics = compute_diffraction_metrics(arr)
     response = diagnose_from_metrics(metrics, image_type=image_type, confidence=confidence)

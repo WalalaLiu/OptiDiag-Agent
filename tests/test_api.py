@@ -57,3 +57,24 @@ def test_analyze_rule_based_fallback(monkeypatch):
     data = response.json()
     assert data["model_available"] is False
     assert data["fallback"] == "rule_based"
+
+
+def test_analyze_model_failure_fallback(monkeypatch):
+    def fail_prediction(image):
+        api_main.model_inference.last_prediction_failed = True
+        return None
+
+    monkeypatch.setattr(api_main.model_inference, "available", True)
+    monkeypatch.setattr(api_main.model_inference, "predict", fail_prediction)
+
+    client = TestClient(app)
+    response = client.post(
+        "/analyze",
+        files={"file": ("test.png", _png_bytes(), "image/png")},
+        data={"experiment_type": "diffraction"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["model_available"] is True
+    assert data["fallback"] == "rule_based_after_model_failure"
