@@ -1,0 +1,387 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OptiDiag Agent API",
+    "description": "Optical diffraction experiment image diagnosis API. POST /analyze supports multipart file upload and optional image_url; file takes precedence.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Return service status and fallback mode.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analyze": {
+      "post": {
+        "summary": "Analyze",
+        "description": "Analyze one diffraction experiment image.",
+        "operationId": "analyze_analyze_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_analyze_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analyze_batch": {
+      "post": {
+        "summary": "Analyze Batch",
+        "description": "Analyze multiple uploaded files. This endpoint is optional for the MVP.",
+        "operationId": "analyze_batch_analyze_batch_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_batch_analyze_batch_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDiagnosisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchDiagnosisResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosisResponse"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "errors": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Errors",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "title": "BatchDiagnosisResponse",
+        "description": "Batch diagnosis response."
+      },
+      "Body_analyze_analyze_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File",
+            "description": "Image file. Takes precedence over image_url."
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "Optional HTTP/HTTPS image URL when no file is uploaded."
+          },
+          "experiment_type": {
+            "type": "string",
+            "title": "Experiment Type",
+            "description": "Only diffraction is supported in the MVP.",
+            "default": "diffraction"
+          }
+        },
+        "type": "object",
+        "title": "Body_analyze_analyze_post"
+      },
+      "Body_analyze_batch_analyze_batch_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "Multiple image files."
+          },
+          "experiment_type": {
+            "type": "string",
+            "title": "Experiment Type",
+            "default": "diffraction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_analyze_batch_analyze_batch_post"
+      },
+      "DiagnosisResponse": {
+        "properties": {
+          "image_type": {
+            "type": "string",
+            "title": "Image Type",
+            "examples": [
+              "double_slit"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "examples": [
+              0.0
+            ]
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueItem"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metrics"
+          },
+          "diagnosis": {
+            "type": "string",
+            "title": "Diagnosis"
+          },
+          "possible_causes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Possible Causes"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          },
+          "need_reacquire": {
+            "type": "boolean",
+            "title": "Need Reacquire"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image_type",
+          "confidence",
+          "issues",
+          "metrics",
+          "diagnosis",
+          "possible_causes",
+          "suggestions",
+          "need_reacquire"
+        ],
+        "title": "DiagnosisResponse",
+        "description": "Agent-facing diagnosis response."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "default": "optidiag-agent"
+          },
+          "model_available": {
+            "type": "boolean",
+            "title": "Model Available",
+            "default": false
+          },
+          "fallback": {
+            "type": "string",
+            "title": "Fallback",
+            "default": "rule_based"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "Service health response."
+      },
+      "IssueItem": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "examples": [
+              "over_exposure"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "examples": [
+              "medium"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "examples": [
+              0.62
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "score"
+        ],
+        "title": "IssueItem",
+        "description": "One detected issue with severity and score."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

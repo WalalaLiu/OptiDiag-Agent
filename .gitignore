@@ -1,0 +1,20 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Generated data and model artifacts
+data/simulated/
+runs/
+models/checkpoints/*.pt
+models/checkpoints/*.pth
+*.pth
+
+# Local environment
+.env
+.env.*
+

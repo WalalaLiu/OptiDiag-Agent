@@ -1,0 +1,16 @@
+api:
+  host: 127.0.0.1
+  port: 8000
+  model_checkpoint: models/checkpoints/best_model.pt
+
+simulation:
+  image_size: 256
+  grid_size: 512
+  wavelength_nm: 632.8
+  focal_length_mm: 200.0
+
+diagnosis:
+  experiment_type: diffraction
+  fallback_image_type: unknown_or_estimated
+  reacquire_threshold: medium
+
